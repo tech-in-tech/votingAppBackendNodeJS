@@ -5,10 +5,12 @@ const express = require('express')
 const router = express.Router();
 
 // Import userModel  
-const User = require('../models/userModel')
+const User = require('../models/userModel');
+const { use } = require('passport');
+const { generateToken } = require('../../HMS2/jwt');
 
 // creating signup route
-router.post('/signup',async (req,res)=>{
+router.post('/signup', async (req, res) => {
   try {
     // extract the data from req.body
     const data = req.body;
@@ -22,10 +24,41 @@ router.post('/signup',async (req,res)=>{
 
   } catch (error) {
     console.log(`Error in post /signup :: ${error}`)
-    res.status(500).json({error:"Error in /signup"});
+    res.status(500).json({ error: "Error in /signup" });
   }
 })
 
+
+// * Login route
+router.post("/login", async (req, res) => {
+  try {
+    // Extract aadharCardNumber and password from request body
+    const { aadharCardNumber, password } = req.body;
+
+    // check if aadharCardNumber or password is missing
+    if (!aadharCardNumber || !password) {
+      return res.status(400).json({ error: "Aadhar card number or password is missing" });
+    }
+
+    // find the user by aadharcard number;
+    const user = await User.findOne({ aadharCardNumber: aadharCardNumber });
+    // if user does not exist or password does not match return error
+    if (!user ||!(await user.comparePassword(password))) {
+      return res.status(401).json({ error: 'Invalid Aadhar Card Number or Password' });
+    }
+    // generate Token
+    const payload = {
+      id: user.id,
+    }
+    const token = generateToken(payload);
+    res.json({token});
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+
+})
 
 
 
